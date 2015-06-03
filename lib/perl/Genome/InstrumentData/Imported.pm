@@ -54,6 +54,7 @@ class Genome::InstrumentData::Imported {
         median_insert_size => {
             is => 'Number',
         },
+        process_id => { is => 'Number', },
         read_length => {
             is => 'Number',
         },
