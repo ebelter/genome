@@ -184,9 +184,7 @@ sub _launch_process {
         },
     );
     $self->process($p);
-
-    $self->debug_message('Started imports with process id: %s. View status with:', $p->id);
-    $self->debug_message('genome instrument-data import status %s', $p->id);
+    $self->status_message("Started imports!\nProcess id: %s\nMetadata directory: %s\nView status with:'genome process view %s'", $p->id, $p->metadata_directory, $p->id);
 
     return 1;
 }
