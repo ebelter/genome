@@ -110,9 +110,9 @@ sub _load_file {
         die $self->error_message('No library for name: %s', $library_name) if not @libraries;
         die $self->error_message('Multiple libraries for library name: %s', $library_name) if @libraries > 1;
 
-        my $import = Genome::InstrumentData::Command::Import::WorkFlow::Inputs->create(
-            analysis_project => $self->analysis_project,
-            library => $libraries[0],
+        my $import = Genome::InstrumentData::Command::Import::WorkFlow::Inputs->new(
+            analysis_project_id => $self->analysis_project->id,
+            library_id => $libraries[0]->id,
             instrument_data_properties => $import->{instdata},
             source_files => [ split(',', $source_files) ], # FIXME move to csv parser
         );

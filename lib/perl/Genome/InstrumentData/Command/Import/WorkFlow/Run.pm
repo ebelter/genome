@@ -5,6 +5,7 @@ use warnings;
 
 use Genome;
 
+use Genome::InstrumentData::Command::Import::WorkFlow::Inputs;
 require File::Temp;
 require List::MoreUtils;
 use Workflow::Simple;

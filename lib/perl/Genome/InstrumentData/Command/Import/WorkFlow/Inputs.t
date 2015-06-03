@@ -22,12 +22,12 @@ my $library = Genome::Library->__define__(name => 'TEST-sample-libs', sample => 
 ok($library, 'define library');
 my @source_files = (qw/ in.1.fastq in.2.fastq /);
 my %required_params = (
-    analysis_project => $analysis_project,
-    library => $library,
+    analysis_project_id => $analysis_project->id,
+    library_id => $library->id,
     source_files => \@source_files,
 );
 
-my $inputs = $class->create(
+my $inputs = $class->new(
     %required_params,
     instrument_data_properties => {
         description => 'imported',
@@ -37,9 +37,10 @@ my $inputs = $class->create(
     },
 );
 ok($inputs, 'create inputs');
+ok($inputs->analysis_project, 'analysis_project');
+ok($inputs->library, 'library');
+ok($inputs->source_files, 'source_files');
 is($inputs->format, 'fastq', 'source files format is fastq');
-is($inputs->library_name, $library->name, 'library_name');
-is($inputs->sample_name, $library->sample->name, 'sample_name');
 
 my %instrument_data_properties = (
     downsample_ratio => 0.7,
@@ -80,7 +81,7 @@ is_deeply(
 for my $name ( sort keys %required_params ) {
     my $value = delete $required_params{$name};
     throws_ok(
-        sub { $class->create(%required_params); },
+        sub { $class->new(%required_params); },
         qr/No $name given to work flow inputs\!/,
         "create failed w/o $name",
     );

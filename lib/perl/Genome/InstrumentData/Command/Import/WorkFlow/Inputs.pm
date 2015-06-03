@@ -3,44 +3,50 @@ package Genome::InstrumentData::Command::Import::WorkFlow::Inputs;
 use strict;
 use warnings;
 
+use base 'Class::Accessor::Fast'; 
+__PACKAGE__->mk_accessors(qw/
+    analysis_project_id
+    library_id
+    instrument_data_properties
+/);
+
 use Genome;
 
-use Genome::InstrumentData::Command::Import::WorkFlow::SourceFiles;
-
-class Genome::InstrumentData::Command::Import::WorkFlow::Inputs { 
-    is => 'UR::Object',
-    has => {
-        analysis_project => { is => 'Genome::Config::AnalysisProject', },
-        library => { is => 'Genome::Library', },
-        instrument_data_properties => { is => 'HASH', default_value => {}, },
-        source_files => { is => 'Genome::InstrumentData::Command::Import::WorkFlow::SourceFiles', },
-    },
-    has_transient => {
-        format => { via => 'source_files', to => 'format', },
-        library_name => { via => 'library', to => 'name', },
-        sample_name => { via => 'library', to => 'sample_name', },
-    },
-};
-
-sub create {
+sub new {
     my ($class, %params) = @_;
 
-    my $self = $class->SUPER::create(%params);
-    return if not $self;
+    my $self = bless(\%params, $class);
+    $self->{instrument_data_properties} ||= {};
 
-    for my $requried (qw/ analysis_project library source_files /) {
-        die $self->error_message("No $requried given to work flow inputs!") if not $self->$requried;
+    for my $property_name (qw/ analysis_project_id library_id source_files /) {
+        my $value = $self->{$property_name};
+        die "ERROR: No $property_name given to work flow inputs!" if not $value;
+        my $method = $property_name;
+        next unless $method =~ s/_id$//;
+        die "ERROR: No $property_name found for id: $value" if not $self->$method;
     }
-
-    $self->source_files(
-        Genome::InstrumentData::Command::Import::WorkFlow::SourceFiles->create(paths => $self->source_files) 
-    );
 
     if ( not $self->instrument_data_properties->{original_data_path} ) {
         $self->instrument_data_properties->{original_data_path} = join(',', $self->source_files->paths);
     }
 
     return $self;
+}
+
+sub analysis_project {
+    return Genome::Config::AnalysisProject->get($_[0]->analysis_project_id);
+}
+
+sub library {
+    return Genome::Library->get($_[0]->library_id);
+}
+
+sub source_files {
+    return Genome::InstrumentData::Command::Import::WorkFlow::SourceFiles->create(paths => $_[0]->{source_files}) 
+}
+
+sub format {
+    return $_[0]->source_files->format;
 }
 
 sub instrument_data_for_original_data_path {
@@ -55,14 +61,15 @@ sub instrument_data_for_original_data_path {
 
 sub as_hashref {
     my $self = shift;
-
-    my %hash = map { $_ => $self->$_ } (qw/
-        analysis_project instrument_data_properties library library_name sample_name
-        /);
-    $hash{downsample_ratio} = $self->instrument_data_properties->{downsample_ratio};
-    $hash{source_paths} = [ $self->source_files->paths ];
-
-    return \%hash;
+    return { 
+        analysis_project => $self->analysis_project,
+        downsample_ratio => $self->instrument_data_properties->{downsample_ratio},
+        instrument_data_properties => $self->instrument_data_properties,
+        library => $self->library,
+        library_name => $self->library->name,
+        sample_name => $self->library->sample_name,
+        source_paths => $self->{source_files},
+    };
 }
 
 1;
