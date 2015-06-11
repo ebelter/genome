@@ -382,7 +382,6 @@ sub _add_create_instdata_and_copy_bam_op_to_workflow {
         right_operation => $create_instdata_and_copy_bam_op,
         right_property => 'source_md5s',
     );
-    $create_instdata_and_copy_bam_op->parallel_by('bam_path');
 
     $workflow->add_link(
         left_operation => $create_instdata_and_copy_bam_op,
