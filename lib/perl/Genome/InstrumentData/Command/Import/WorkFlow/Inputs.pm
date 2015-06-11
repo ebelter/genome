@@ -3,6 +3,8 @@ package Genome::InstrumentData::Command::Import::WorkFlow::Inputs;
 use strict;
 use warnings;
 
+use Params::Validate ':types';
+
 use base 'Class::Accessor::Fast'; 
 __PACKAGE__->mk_accessors(qw/
     analysis_project_id
@@ -41,6 +43,16 @@ sub library {
     return Genome::Library->get($_[0]->library_id);
 }
 
+sub add_process {
+    my ($self, $process) = Params::Validate::validate_pos(@_, {type => OBJECT}, {type => OBJECT});
+    return $self->{instrument_data_properties}->{process_id} = $process->id;
+}
+
+sub process {
+    return if not $_[0]->{instrument_data_properties}->{process_id};
+    return Genome::InstrumentData::Command::Import::Process->get($_[0]->{instrument_data_properties}->{process_id});
+}
+
 sub source_files {
     return Genome::InstrumentData::Command::Import::WorkFlow::SourceFiles->create(paths => $_[0]->{source_files}) 
 }
@@ -61,7 +73,7 @@ sub instrument_data_for_original_data_path {
 
 sub as_hashref {
     my $self = shift;
-    return { 
+    return {
         analysis_project => $self->analysis_project,
         downsample_ratio => $self->instrument_data_properties->{downsample_ratio},
         instrument_data_properties => $self->instrument_data_properties,

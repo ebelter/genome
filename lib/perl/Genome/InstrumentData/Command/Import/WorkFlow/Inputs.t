@@ -62,6 +62,11 @@ ok($instdata, 'define instdata');
 ok($instdata->original_data_path($inputs->source_files->original_data_path), 'add original_data_path');
 is_deeply([$inputs->instrument_data_for_original_data_path], [$instdata], 'instrument_data_for_original_data_path');
 
+# add process
+my $process = Genome::InstrumentData::Command::Import::Process->__define__();
+ok($inputs->add_process($process), 'add_process');
+is($inputs->process, $process, 'get process');
+
 # as_hashref
 is_deeply(
     $inputs->as_hashref,
@@ -71,6 +76,7 @@ is_deeply(
         instrument_data_properties => \%instrument_data_properties,
         library => $library,
         library_name => $library->name,
+        process => $process,
         sample_name => $library->sample->name,
         source_paths => \@source_files,
     },
