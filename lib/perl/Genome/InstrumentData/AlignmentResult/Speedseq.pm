@@ -13,22 +13,68 @@ class Genome::InstrumentData::AlignmentResult::Speedseq {
     ],
 };
 
-sub _run_aligner {
-    my $self = shift;
-
-    #Run get_bam_file to fake revivify the per-lane bams
-    $self->_prepare_output_directory;
-    $self->get_bam_file;
+sub post_create {
     return 1;
 }
 
-#Use merged bam for header since we don't have an original per-lane bam
-sub source_bam_path_for_header {
+sub get_bam_file {
     my $self = shift;
-    return $self->get_merged_bam_to_revivify_per_lane_bam;
+
+    # Create doesn't do all of the necessary post-processing. This is being
+    # delayed until the first time that the bam file is revivified.
+    # If we don't have an allocation then this is the first revivification and
+    # we will need to do post-processing.
+    my $guard = $self->get_bam_lock(__PACKAGE__)->unlock_guard();
+    unless ($self->disk_allocations) {
+        return $self->_inititalize_revivified_bam;
+    }
+    else {
+        return $self->SUPER::get_bam_file;
+    }
 }
 
-sub path_for_bam_header_creation {
+sub _inititalize_revivified_bam {
+    my $self = shift;
+
+    $self->_create_disk_allocation;
+
+    $self->_prepare_working_and_staging_directories;
+
+    $self->debug_message("Preparing the output directory...");
+    $self->debug_message("Staging disk usage is " . $self->_staging_disk_usage . " KB");
+    my $output_dir = $self->output_dir || $self->_prepare_output_directory;
+    $self->debug_message("Alignment output path is $output_dir");
+
+    $self->create_bam_header;
+
+    my $bam_file = $self->SUPER::get_bam_file;
+
+    $self->postprocess_bam_file;
+
+    $self->_compute_alignment_metrics;
+
+    $self->debug_message("Moving results to network disk...");
+    $self->_promote_data;
+
+    $self->_reallocate_disk_allocation;
+
+    $self->status_message("Alignment complete.");
+
+    return $bam_file;
+}
+
+sub create_bam_header {
+    my $self = shift;
+
+    return $self->bam_header_path if -s $self->bam_header_path;
+
+    my $scratch_sam_header_file = $self->prepare_scratch_sam_header_file;
+
+    Genome::Sys->move_file($scratch_sam_header_file, $self->bam_header_path);
+    return $self->bam_header_path;
+}
+
+sub scratch_sam_file_path {
     my $self = shift;
     return File::Spec->join($self->temp_staging_directory, 'all_sequences.bam.header');
 }
@@ -101,7 +147,17 @@ sub _check_read_count {
     $self->debug_message("Overriding _check_read_count: filtering flag $flag from bam read count.");
     $self->debug_message("Actual read count: $bam_rd_ct; filtered read count: $filtered_bam_rd_ct");
 
+    $self->_fastq_read_count($self->determine_input_read_count_from_bam);
+
     return $self->SUPER::_check_read_count($filtered_bam_rd_ct);
+}
+
+sub _create_bam_md5 {
+    return 1;
+}
+
+sub _create_bam_index {
+    return 1;
 }
 
 sub _promote_data {

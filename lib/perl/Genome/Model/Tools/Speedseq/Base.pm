@@ -59,7 +59,7 @@ sub help_detail {
 }
 
 my %TOOL_VERSIONS = (
-    'test'     => '/gscmnt/gc2719/halllab/users/cchiang/bin/speedseq',
+    'test'     => '/gscmnt/sata849/info/speedseq_freeze/v1/speedseq/bin/speedseq',
 );
 
 sub available_versions {
@@ -229,6 +229,7 @@ sub _shellcmd_extra_params {
     return (
         skip_if_output_is_present => 0,
         keep_dbh_connection_open => 0,
+        set_pipefail => 0,
         input_files => \@input_files,
         output_files => \@output_files,
     );
