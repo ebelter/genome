@@ -52,6 +52,9 @@ sub execute {
     my $inputs = $self->work_flow_inputs->as_hashref;
     return if not $inputs;
     $inputs->{working_directory} = $self->_working_directory;
+    if ( $inputs->{process} ) {
+        $workflow->log_dir($inputs->{process}->log_directory);
+    }
 
     my $success = Workflow::Simple::run_workflow($workflow, %$inputs);
     die 'Run wf failed!' if not $success;
